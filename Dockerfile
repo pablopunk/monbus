@@ -43,4 +43,5 @@ ENTRYPOINT ["dumb-init", "--"]
 # CMD ["/usr/local/share/.config/yarn/global/node_modules/puppeteer/.local-chromium/linux-526987/chrome-linux/chrome"]
 
 EXPOSE 3000
+CMD ["npm", "install"]
 CMD ["npm", "start"]
