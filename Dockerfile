@@ -1,27 +1,46 @@
-FROM alpine:edge as base
-RUN apk add --no-cache --update chromium tar zstd && \
-    cd /usr/lib/chromium/locales/ && \
-    find ./ -maxdepth 1 '!' -path './' '!' -path './en-US.pak' '!' -path './en-US.pak.info' -exec 'rm' '{}' ';' && \
-    cd /usr/lib  && \
-    tar cvf /chromium_lib.tar ./chromium && \
-    zstd --train -r /usr/lib/chromium -o /chromium_lib.dict && \
-    zstd -f -22 --ultra -D /chromium_lib.dict /chromium_lib.tar
+FROM node:8-slim
 
-FROM mhart/alpine-node:10 as build
-WORKDIR /usr/src
-COPY package.json package-lock.json /usr/src/
-RUN PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1 npm ci
-COPY *.js ../
+RUN apt-get update && \
+apt-get install -yq gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 \
+libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 \
+libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 \
+libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 \
+fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst ttf-freefont \
+ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget && \
+wget https://github.com/Yelp/dumb-init/releases/download/v1.2.1/dumb-init_1.2.1_amd64.deb && \
+dpkg -i dumb-init_*.deb && rm -f dumb-init_*.deb && \
+apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
-FROM mhart/alpine-node:base-10
-WORKDIR /usr/src
-ENV NODE_ENV="production"
-COPY --from=base /chromium_lib.tar.zst /chromium_lib.dict /chrome/
-#RUN apk add --no-cache --update tar zstd && \
-RUN apk add --no-cache --update tar zstd alsa-lib at-spi2-atk atk cairo cups-libs dbus-libs eudev-libs expat flac fontconfig freetype gdk-pixbuf glib gtk+3.0 harfbuzz libatomic libevent libgcc libjpeg-turbo libpng libre2 libstdc++ libwebp libx11 libxcb libxcomposite libxcursor libxdamage libxext libxfixes libxi libxml2 libxrandr libxrender libxscrnsaver libxslt libxtst musl nspr nss opus pango snappy ttf-opensans minizip && \
-    rm -rf /usr/share/gtk-doc
-ENV CHROME_BIN=/usr/bin/chromium-browser \
-   CHROME_PATH=/usr/lib/chromium/
-COPY --from=build /usr/src/ .
+RUN yarn global add puppeteer@1.8.0 && yarn cache clean
+
+ENV NODE_PATH="/usr/local/share/.config/yarn/global/node_modules:${NODE_PATH}"
+
+RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser
+
+COPY --chown=pptruser:pptruser . /src
+
+# Set language to UTF8
+ENV LANG="C.UTF-8"
+
+WORKDIR /src
+
+# Add user so we don't need --no-sandbox.
+RUN mkdir /screenshots \
+	&& mkdir -p /home/pptruser/Downloads \
+    && chown -R pptruser:pptruser /home/pptruser \
+    && chown -R pptruser:pptruser /usr/local/share/.config/yarn/global/node_modules \
+    && chown -R pptruser:pptruser /screenshots \
+    && chown -R pptruser:pptruser /src
+
+# Run everything after as non-privileged user.
+USER pptruser
+
+# --cap-add=SYS_ADMIN
+# https://docs.docker.com/engine/reference/run/#additional-groups
+
+ENTRYPOINT ["dumb-init", "--"]
+
+# CMD ["/usr/local/share/.config/yarn/global/node_modules/puppeteer/.local-chromium/linux-526987/chrome-linux/chrome"]
+
 EXPOSE 3000
-CMD ["npm start"]
+CMD ["npm", "start"]
