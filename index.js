@@ -11,7 +11,7 @@ const populateCache = async () => {
   cache = { rp, pr }
 }
 
-setInterval(populateCache, ms('4 hours'))
+setInterval(populateCache, ms('1 hour'))
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
