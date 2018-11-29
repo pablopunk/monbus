@@ -18,7 +18,7 @@ async function idas (origen, destino) {
   await page.waitForSelector('.fecha-ida > img.ui-datepicker-trigger', { visible: true })
   await page.click('input#fechaIda')
   await page.waitForSelector('#ui-datepicker-div', { visible: true })
-  await page.waitForSelector('td[data-handler="selectDay"]:nth-child(1)', { visible: true })
+  await page.waitForSelector('td.ui-datepicker-today[data-handler="selectDay"]', { visible: true })
   await page.waitFor(300)
   await page.click('td.ui-datepicker-today[data-handler="selectDay"]')
   await page.waitFor(300)
