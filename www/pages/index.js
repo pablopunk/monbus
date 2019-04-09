@@ -5,8 +5,8 @@ import classNames from 'class-names'
 import Fade from 'react-fade-in'
 
 export default class extends React.Component {
-  static async getInitialProps () {
-    const res = await fetch('https://monbus.now.sh/')
+  static async getInitialProps ({ req }) {
+    const res = await fetch('https://raxo.now.sh/api')
     const json = await res.json()
 
     return { horarios: json }

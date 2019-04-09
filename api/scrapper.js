@@ -1,10 +1,15 @@
-const puppeteer = require('puppeteer')
+const chrome = require('chrome-aws-lambda')
+const puppeteer = require('puppeteer-core')
 const cheerio = require('cheerio')
 
 const url = 'http://www.monbus.es/es'
 
 async function idas (origen, destino) {
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] })
+  const browser = await puppeteer.launch({
+    args: chrome.args,
+    executablePath: await chrome.executablePath,
+    headless: chrome.headless
+  })
   const page = await browser.newPage()
   await page.goto(url)
   await page.click('#paradaOrigenAC')

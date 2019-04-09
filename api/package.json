@@ -5,13 +5,17 @@
   "main": "index.js",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
-    "micro": "^9.3.3",
+    "chrome-aws-lambda": "^1.14.0",
     "ms": "^2.1.1",
-    "puppeteer": "^1.10.0"
+    "puppeteer-core": "^1.14.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "micro": "^9.3.3",
+    "micro-dev": "^3.0.0"
+  },
   "scripts": {
-    "start": "micro index.js"
+    "start": "node index.js",
+    "dev": "micro-dev"
   },
   "keywords": [],
   "author": "",
