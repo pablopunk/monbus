@@ -11,9 +11,11 @@ const padDate = n => {
   return n;
 };
 
-const buildUrl = (from, to) => {
+const buildUrl = (from, to, date = null) => {
   const baseUrl = 'http://www.monbus.es/';
-  const now = new Date();
+  if (!date) {
+    date = new Date // now
+  }
   const params = {
     route: '/src/net/monbus/horarios/trigger/results.php',
     'data[captcha]': 0,
@@ -22,7 +24,7 @@ const buildUrl = (from, to) => {
     'data[paradaDestino]': to,
     'data[nViajeros]': 1,
     'data[tipoBillete]': 1,
-    'data[fechaIda]': `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`,
+    'data[fechaIda]': `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()}`,
   };
   const paramsString = Object.keys(params).reduce((acc, curr) => {
     const str = `${curr}=${params[curr]}`;
@@ -42,8 +44,8 @@ const headers = {
   'x-requested-with': 'XMLHttpRequest',
 };
 
-async function idas(from, to) {
-  const {body} = await got(buildUrl(from, to), {
+async function idas(from, to, date) {
+  const {body} = await got(buildUrl(from, to, date), {
     credentials: 'include',
     headers,
     referrer: 'http://www.monbus.es/es',
@@ -74,9 +76,11 @@ const PONTEVEDRA = 10530
 const RAXO = 10556
 
 module.exports = async (req, res) => {
+  const now = new Date
+
   try {
-    const pr = await idas(PONTEVEDRA, RAXO)
-    const rp = await idas(RAXO, PONTEVEDRA)
+    const pr = await idas(PONTEVEDRA, RAXO, now)
+    const rp = await idas(RAXO, PONTEVEDRA, now)
 
     const responseObject = { pr, rp }
 
