@@ -1,6 +1,10 @@
 const { parse: urlParse } = require('url')
+const micro = require('micro')
 const got = require('got');
 const cheerio = require('cheerio');
+const Cache = require('cache')
+
+const cache = new Cache(30 * 60 * 1000) // 30 minutes cache
 
 // 1 => 01
 // 11 => 11
@@ -111,13 +115,18 @@ const getDateFromUrl = (url) => {
 const PONTEVEDRA = 10530
 const RAXO = 10556
 
-module.exports = async (req, res) => {
+const server = micro(async (req, res) => {
   const { pathname = '/' } = urlParse(req.url, true)
   if (pathname.includes('favicon')) {
     res.statusCode = 404
     res.end()
     return
   }
+  const fromCache = cache.get(pathname)
+  if (fromCache) {
+    return fromCache
+  }
+
   const date = getDateFromUrl(pathname) || new Date
 
   try {
@@ -125,18 +134,19 @@ module.exports = async (req, res) => {
     const prPromise = idas(PONTEVEDRA, RAXO, date)
     const rpPromise = idas(RAXO, PONTEVEDRA, date)
 
-    Promise.all([prPromise, rpPromise])
-      .then(([pr, rp]) => {
-        const responseObject = { pr, rp }
+    const [pr, rp] = await Promise.all([prPromise, rpPromise])
+    const responseObject = { pr, rp }
 
-        res.setHeader('Content-Type', 'application/json')
-        res.setHeader('Access-Control-Allow-Origin', '*')
-        res.end(JSON.stringify(responseObject))
-      })
+    cache.put(pathname, responseObject)
+
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    return responseObject
   } catch (e) {
     res.statusCode = 500
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.end('error')
     console.log(e.message)
   }
-}
+})
+
+server.listen(3000)
