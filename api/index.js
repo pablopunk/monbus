@@ -1,3 +1,4 @@
+const { parse: urlParse } = require('url')
 const got = require('got');
 const cheerio = require('cheerio');
 
@@ -11,11 +12,8 @@ const padDate = n => {
   return n;
 };
 
-const buildUrl = (from, to, date = null) => {
+const buildUrl = (from, to, date) => {
   const baseUrl = 'http://www.monbus.es/';
-  if (!date) {
-    date = new Date // now
-  }
   const params = {
     route: '/src/net/monbus/horarios/trigger/results.php',
     'data[captcha]': 0,
@@ -72,15 +70,58 @@ async function idas(from, to, date) {
   return idas;
 }
 
+const validateDate = (dateArr) => {
+  if (dateArr.length !== 3) { // date needs to have 3 numbers
+    return false
+  }
+
+  return (
+    (dateArr[0] >= 2018 && dateArr[0] <= 2020) &&
+    (dateArr[1] >= 1 && dateArr[1] <= 12) &&
+    (dateArr[2] >= 1 && dateArr[2] <= 31)
+  )
+}
+
+const getDateFromUrl = (url) => {
+  if (url === '/' || typeof url !== 'string' || !url) {
+    return null
+  }
+
+  // /2019/11/04
+  const urlSplits = url.split('/').filter(_ => !!_)
+
+  if (!validateDate(urlSplits)) {
+    console.log('Invalid date', url)
+
+    return null
+  }
+
+  try {
+    const date = new Date(urlSplits[0], urlSplits[1] - 1, urlSplits[2])
+
+    return date
+  } catch (err) {
+
+    console.log('Invalid date', url)
+    return null
+  }
+}
+
 const PONTEVEDRA = 10530
 const RAXO = 10556
 
 module.exports = async (req, res) => {
-  const now = new Date
+  const { pathname = '/' } = urlParse(req.url, true)
+  if (pathname.includes('favicon')) {
+    res.statusCode = 404
+    res.end()
+    return
+  }
+  const date = getDateFromUrl(pathname) || new Date
 
   try {
-    const pr = await idas(PONTEVEDRA, RAXO, now)
-    const rp = await idas(RAXO, PONTEVEDRA, now)
+    const pr = await idas(PONTEVEDRA, RAXO, date)
+    const rp = await idas(RAXO, PONTEVEDRA, date)
 
     const responseObject = { pr, rp }
 
