@@ -87,8 +87,10 @@ const getDateFromUrl = (url) => {
     return null
   }
 
-  // /2019/11/04
-  const urlSplits = url.split('/').filter(_ => !!_)
+  let urlSplits = url
+    .split('/')
+    .filter(_ => !!_)
+  urlSplits = urlSplits.slice(urlSplits.length-3, urlSplits.length) // take only last 3
 
   if (!validateDate(urlSplits)) {
     console.log('Invalid date', url)
