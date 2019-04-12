@@ -1,50 +1,99 @@
-import React from 'react'
-import autoBind from 'auto-bind'
-import fetch from 'isomorphic-fetch'
-import classNames from 'class-names'
-import Fade from 'react-fade-in'
+import React from 'react';
+import autoBind from 'auto-bind';
+import fetch from 'isomorphic-fetch';
+import classNames from 'class-names';
+import Fade from 'react-fade-in';
+
+const API = 'https://raxo.now.sh/api'
 
 export default class extends React.Component {
-  static async getInitialProps ({ req }) {
-    const res = await fetch('https://raxo.now.sh/api')
-    const json = await res.json()
+  static async getInitialProps({req}) {
+    const res = await fetch(API);
+    const json = await res.json();
 
-    return { horarios: json }
+    return {horarios: json};
   }
 
-  constructor (props) {
-    super(props)
+  constructor(props) {
+    super(props);
 
-    autoBind(this)
+    autoBind(this);
 
-    this.state = { selected: 'rp' }
+    this.state = {
+      place: 'rp',
+      date: 'today',
+      horarios: props.horarios,
+      loading: false,
+    };
   }
 
-  navClicked (selected) {
-    this.setState({ selected })
+  placeNavClicked(place) {
+    this.setState({place});
   }
 
-  render () {
+  dateNavClicked(date) {
+    this.setState({ loading: true, date })
+    let promise;
+    if (date === 'tomorrow') {
+      const now = new Date();
+      promise = fetch(
+        `${API}/${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate() + 1}`,
+      );
+    } else {
+      promise = fetch(API);
+    }
+    promise.then(res => {
+      res.json().then(horarios => {
+        this.setState({horarios, loading: false});
+      });
+    });
+  }
+
+  render() {
     return (
       <div>
         <nav>
-          <div onClick={() => this.navClicked('rp')} className={classNames({ selected: this.state.selected === 'rp' })}>Raxó - Pontevedra</div>
-          <div onClick={() => this.navClicked('pr')} className={classNames({ selected: this.state.selected === 'pr' })}>Pontevedra - Raxó</div>
+          <div
+            onClick={() => this.placeNavClicked('rp')}
+            className={classNames({selected: this.state.place === 'rp'})}>
+            Raxó - Pontevedra
+          </div>
+          <div
+            onClick={() => this.placeNavClicked('pr')}
+            className={classNames({selected: this.state.place === 'pr'})}>
+            Pontevedra - Raxó
+          </div>
         </nav>
-        <section>
-          <img src='./static/time.png' />
-          <Fade>
-            {
-              this.props.horarios[this.state.selected].map(horario => (
-                <div>{ horario }</div>
-              ))
-            }
-          </Fade>
-        </section>
+        <nav>
+          <div
+            onClick={() => this.dateNavClicked('today')}
+            className={classNames({selected: this.state.date === 'today'})}>
+            Hoxe
+          </div>
+          <div
+            onClick={() => this.dateNavClicked('tomorrow')}
+            className={classNames({selected: this.state.date === 'tomorrow'})}>
+            Mañá
+          </div>
+        </nav>
+        { this.state.loading ?
+            <section className='loading'>
+              <i className='fas fa-sync fa-spin'></i>
+            </section>
+            :
+            <section>
+              <i className='far fa-calendar-alt'></i>
+              <Fade>
+                {this.state.horarios[this.state.place].map(horario => (
+                  <div>{horario}</div>
+                ))}
+              </Fade>
+            </section>
+        }
         <style jsx>{`
           nav {
             text-align: center;
-            font-family: Helvetica, Arial;
+            font-family: Helvetica, Arial, sans-serif;
             margin-bottom: 1em;
           }
           section {
@@ -57,10 +106,11 @@ export default class extends React.Component {
           }
           nav > div {
             display: inline-block;
-            margin: .5em;
+            margin: 0.5em;
             padding: 1em;
-            border: 1px solid royalblue;
-            border-radius: 10px;
+            color: tomato;
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+            border-radius: 5px;
             cursor: pointer;
           }
           nav > div:hover {
@@ -68,18 +118,21 @@ export default class extends React.Component {
           }
           nav > div.selected {
             font-weight: bold;
-            background-color: royalblue;
-            color: white;
+            border-bottom: 5px solid tomato;
+            border-radius: 5px 5px 0 0;
+            color: tomato;
           }
           section div {
             width: 150px;
           }
-          section img {
-            width: 35px;
-            margin-bottom: .7em;
+          .loading {
+            text-align: center;
+          }
+          i {
+            margin-bottom: .6em;
           }
         `}</style>
-      </div>
-    )
+    </div>
+    );
   }
 }

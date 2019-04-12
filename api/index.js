@@ -128,9 +128,11 @@ module.exports = async (req, res) => {
     const responseObject = { pr, rp }
 
     res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Access-Control-Allow-Origin', '*')
     res.end(JSON.stringify(responseObject))
   } catch (e) {
     res.statusCode = 500
+    res.setHeader('Access-Control-Allow-Origin', '*')
     res.end('error')
     console.log(e.message)
   }
