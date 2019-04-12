@@ -93,7 +93,6 @@ const getDateFromUrl = (url) => {
   urlSplits = urlSplits.slice(urlSplits.length-3, urlSplits.length) // take only last 3
 
   if (!validateDate(urlSplits)) {
-    console.log('Invalid date', url)
 
     return null
   }
@@ -122,14 +121,18 @@ module.exports = async (req, res) => {
   const date = getDateFromUrl(pathname) || new Date
 
   try {
-    const pr = await idas(PONTEVEDRA, RAXO, date)
-    const rp = await idas(RAXO, PONTEVEDRA, date)
 
-    const responseObject = { pr, rp }
+    const prPromise = idas(PONTEVEDRA, RAXO, date)
+    const rpPromise = idas(RAXO, PONTEVEDRA, date)
 
-    res.setHeader('Content-Type', 'application/json')
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.end(JSON.stringify(responseObject))
+    Promise.all([prPromise, rpPromise])
+      .then(([pr, rp]) => {
+        const responseObject = { pr, rp }
+
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Access-Control-Allow-Origin', '*')
+        res.end(JSON.stringify(responseObject))
+      })
   } catch (e) {
     res.statusCode = 500
     res.setHeader('Access-Control-Allow-Origin', '*')
