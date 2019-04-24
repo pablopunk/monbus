@@ -6,16 +6,6 @@ const Cache = require('cache')
 
 const cache = new Cache(30 * 60 * 1000) // 30 minutes cache
 
-// 1 => 01
-// 11 => 11
-const padDate = n => {
-  if (n.toString().length < 2) {
-    return '0' + n;
-  }
-
-  return n;
-};
-
 const buildUrl = (from, to, date) => {
   const baseUrl = 'http://www.monbus.es/';
   const params = {
@@ -117,6 +107,8 @@ const RAXO = 10556
 
 const server = micro(async (req, res) => {
   const { pathname = '/' } = urlParse(req.url, true)
+  res.setHeader('Access-Control-Allow-Origin', '*')
+
   if (pathname.includes('favicon')) {
     res.statusCode = 404
     res.end()
@@ -124,13 +116,12 @@ const server = micro(async (req, res) => {
   }
   const fromCache = cache.get(pathname)
   if (fromCache) {
-    return fromCache
+    return micro.send(res, 200, fromCache)
   }
 
   const date = getDateFromUrl(pathname) || new Date
 
   try {
-
     const prPromise = idas(PONTEVEDRA, RAXO, date)
     const rpPromise = idas(RAXO, PONTEVEDRA, date)
 
@@ -138,12 +129,9 @@ const server = micro(async (req, res) => {
     const responseObject = { pr, rp }
 
     cache.put(pathname, responseObject)
-
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    return responseObject
+    micro.send(res, 200, responseObject)
   } catch (e) {
     res.statusCode = 500
-    res.setHeader('Access-Control-Allow-Origin', '*')
     res.end('error')
     console.log(e.message)
   }

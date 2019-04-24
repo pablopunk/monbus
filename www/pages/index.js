@@ -1,101 +1,113 @@
-import React from 'react'
-import autoBind from 'auto-bind'
-import fetch from 'isomorphic-fetch'
-import classNames from 'class-names'
-import Fade from 'react-fade-in'
+import React from 'react';
+import autoBind from 'auto-bind';
+import fetch from 'isomorphic-fetch';
+import classNames from 'class-names';
+import Fade from 'react-fade-in';
 
-const API = 'https://raxo.now.sh/api'
+let API = 'https://raxo.now.sh/api';
+
+if (process.env.NODE_ENV !== 'production') {
+  API = 'http://localhost:3000';
+}
 
 // return article tag for first render, Fade otherwise
 const getHorariosRenderer = firstRender =>
-  firstRender ? ({ children }) => <article>{children}</article> : Fade
+  firstRender ? ({children}) => <article>{children}</article> : Fade;
 
 export default class extends React.Component {
-  static async getInitialProps ({ req }) {
-    const res = await fetch(API)
-    const json = await res.json()
+  static async getInitialProps() {
+    const res = await fetch(API);
+    const json = await res.json();
 
-    return { horarios: json }
+    return {horarios: json};
   }
 
-  constructor (props) {
-    super(props)
+  constructor(props) {
+    super(props);
 
-    autoBind(this)
+    autoBind(this);
 
-    this.firstRender = true
+    this.firstRender = true;
+    this.fetchCache = {[API]: props.horarios}; // init cache
 
     this.state = {
       place: 'rp',
       date: 'today',
       horarios: props.horarios,
-      loading: false
-    }
+      loading: false,
+    };
   }
 
-  placeNavClicked (place) {
-    this.setState({ place })
+  placeNavClicked(place) {
+    this.setState({place});
   }
 
-  dateNavClicked (date) {
-    this.setState({ loading: true, date })
-    let promise
+  dateNavClicked(date) {
+    this.setState({loading: true, date});
+
+    let urlString;
+
     if (date === 'tomorrow') {
-      const now = new Date()
-      promise = fetch(
-        `${API}/${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate() +
-          1}`
-      )
+      const now = new Date();
+      urlString = `${API}/${now.getFullYear()}/${now.getMonth() +
+        1}/${now.getDate() + 1}`;
     } else {
-      promise = fetch(API)
+      urlString = API;
     }
-    promise.then(res => {
-      res.json().then(horarios => {
-        this.setState({ horarios, loading: false })
-      })
-    })
+
+    if (this.fetchCache.hasOwnProperty(urlString)) {
+      // fetched in cache
+      this.setState({horarios: this.fetchCache[urlString], loading: false});
+    } else {
+      fetch(urlString).then(res => {
+        res.json().then(horarios => {
+          this.fetchCache[urlString] = horarios
+          this.setState({horarios, loading: false});
+        });
+      });
+    }
   }
 
-  componentDidMount () {
-    this.firstRender = false
+  componentDidMount() {
+    this.firstRender = false;
   }
 
-  render () {
-    const HorariosRenderer = getHorariosRenderer(this.firstRender)
+  render() {
+    const HorariosRenderer = getHorariosRenderer(this.firstRender);
 
     return (
       <div>
         <nav>
           <div
             onClick={() => this.placeNavClicked('rp')}
-            className={classNames({ selected: this.state.place === 'rp' })}>
+            className={classNames({selected: this.state.place === 'rp'})}>
             Raxó - Pontevedra
           </div>
           <div
             onClick={() => this.placeNavClicked('pr')}
-            className={classNames({ selected: this.state.place === 'pr' })}>
+            className={classNames({selected: this.state.place === 'pr'})}>
             Pontevedra - Raxó
           </div>
         </nav>
         <nav>
           <div
             onClick={() => this.dateNavClicked('today')}
-            className={classNames({ selected: this.state.date === 'today' })}>
+            className={classNames({selected: this.state.date === 'today'})}>
             Hoxe
           </div>
           <div
             onClick={() => this.dateNavClicked('tomorrow')}
-            className={classNames({ selected: this.state.date === 'tomorrow' })}>
+            className={classNames({selected: this.state.date === 'tomorrow'})}>
             Mañá
           </div>
         </nav>
         {this.state.loading ? (
-          <section className='loading'>
-            <i className='fas fa-sync fa-spin' />
+          <section className="loading">
+            <i className="fas fa-sync fa-spin" />
           </section>
         ) : (
           <section>
-            <i className='far fa-calendar-alt' />
+            <i className="far fa-calendar-alt" />
             <HorariosRenderer>
               {this.state.horarios[this.state.place].map(horario => (
                 <div>{horario}</div>
@@ -146,6 +158,6 @@ export default class extends React.Component {
           }
         `}</style>
       </div>
-    )
+    );
   }
 }
