@@ -3,7 +3,7 @@
   "name": "monbus",
   "alias": "raxo",
   "builds": [
-    { "src": "api/index.js", "use": "@now/node-server" },
+    { "src": "api/index.js", "use": "now-micro" },
     { "src": "www/package.json", "use": "@now/next" }
   ],
   "routes": [

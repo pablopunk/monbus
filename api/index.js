@@ -1,5 +1,5 @@
 const { parse: urlParse } = require('url')
-const micro = require('micro')
+const {send} = require('micro')
 const got = require('got');
 const cheerio = require('cheerio');
 const Cache = require('cache')
@@ -50,7 +50,7 @@ async function idas(from, to, date) {
   const $ = cheerio.load(body);
 
   let idas = [];
-  $('.departureTime').each((i, el) => idas.push($(el).text()));
+  $('.departureTime').each((_i, el) => idas.push($(el).text()));
   idas = idas.reduce((acc, curr) => {
     if (acc.includes(curr)) {
       const index = acc.indexOf(curr);
@@ -105,7 +105,7 @@ const getDateFromUrl = (url) => {
 const PONTEVEDRA = 10530
 const RAXO = 10556
 
-const server = micro(async (req, res) => {
+module.exports = async (req, res) => {
   const { pathname = '/' } = urlParse(req.url, true)
   res.setHeader('Access-Control-Allow-Origin', '*')
 
@@ -116,7 +116,7 @@ const server = micro(async (req, res) => {
   }
   const fromCache = cache.get(pathname)
   if (fromCache) {
-    return micro.send(res, 200, fromCache)
+    return send(res, 200, fromCache)
   }
 
   const date = getDateFromUrl(pathname) || new Date
@@ -129,12 +129,10 @@ const server = micro(async (req, res) => {
     const responseObject = { pr, rp }
 
     cache.put(pathname, responseObject)
-    micro.send(res, 200, responseObject)
+    send(res, 200, responseObject)
   } catch (e) {
     res.statusCode = 500
     res.end('error')
     console.log(e.message)
   }
-})
-
-server.listen(3000)
+}
