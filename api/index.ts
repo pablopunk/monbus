@@ -1,12 +1,14 @@
-const { parse: urlParse } = require('url')
-const {send} = require('micro')
-const got = require('got');
-const cheerio = require('cheerio');
-const Cache = require('cache')
+import * as Koa from 'koa'
+import { Context } from 'koa'
+import * as got from 'got';
+import * as cheerio from 'cheerio';
+import * as Cache from 'cache'
+
+const app = new Koa()
 
 const cache = new Cache(30 * 60 * 1000) // 30 minutes cache
 
-const buildUrl = (from, to, date) => {
+const buildUrl = (from: number, to: number, date: Date) => {
   const baseUrl = 'http://www.monbus.es/';
   const params = {
     route: '/src/net/monbus/horarios/trigger/results.php',
@@ -36,16 +38,8 @@ const headers = {
   'x-requested-with': 'XMLHttpRequest',
 };
 
-async function idas(from, to, date) {
-  const {body} = await got(buildUrl(from, to, date), {
-    credentials: 'include',
-    headers,
-    referrer: 'http://www.monbus.es/es',
-    referrerPolicy: 'no-referrer-when-downgrade',
-    body: null,
-    method: 'GET',
-    mode: 'cors',
-  });
+async function idas(from: number, to: number, date: Date) {
+  const {body} = await got(buildUrl(from, to, date), {headers});
 
   const $ = cheerio.load(body);
 
@@ -64,7 +58,7 @@ async function idas(from, to, date) {
   return idas;
 }
 
-const validateDate = (dateArr) => {
+const validateDate = (dateArr: Array<number>) => {
   if (dateArr.length !== 3) { // date needs to have 3 numbers
     return false
   }
@@ -76,7 +70,7 @@ const validateDate = (dateArr) => {
   )
 }
 
-const getDateFromUrl = (url) => {
+const getDateFromUrl = (url: string) => {
   if (url === '/' || typeof url !== 'string' || !url) {
     return null
   }
@@ -86,13 +80,12 @@ const getDateFromUrl = (url) => {
     .filter(_ => !!_)
   urlSplits = urlSplits.slice(urlSplits.length-3, urlSplits.length) // take only last 3
 
-  if (!validateDate(urlSplits)) {
-
+  if (!validateDate(urlSplits.map(_ => parseInt(_)))) {
     return null
   }
 
   try {
-    const date = new Date(urlSplits[0], urlSplits[1] - 1, urlSplits[2])
+    const date = new Date(parseInt(urlSplits[0]), parseInt(urlSplits[1]) - 1, parseInt(urlSplits[2]))
 
     return date
   } catch (err) {
@@ -105,34 +98,45 @@ const getDateFromUrl = (url) => {
 const PONTEVEDRA = 10530
 const RAXO = 10556
 
-module.exports = async (req, res) => {
-  const { pathname = '/' } = urlParse(req.url, true)
-  res.setHeader('Access-Control-Allow-Origin', '*')
+// Headers
+app.use(async (ctx: Context, next: Function) => {
+  ctx.set('Access-Control-Allow-Origin', '*')
+  await next()
+})
 
-  if (pathname.includes('favicon')) {
-    res.statusCode = 404
-    res.end()
-    return
+// 404
+app.use(async (ctx: Context, next: Function) => {
+  if (ctx.path.includes('favicon')) {
+    ctx.throw(404)
+  } else {
+    await next()
   }
-  const fromCache = cache.get(pathname)
-  if (fromCache) {
-    return send(res, 200, fromCache)
+})
+
+
+// From cache
+app.use(async (ctx: Context, next: Function) => {
+  const fromCache = cache.get(ctx.path)
+  if (fromCache === null) {
+    return await next()
   }
 
-  const date = getDateFromUrl(pathname) || new Date
+  ctx.body = fromCache
+})
 
-  try {
-    const prPromise = idas(PONTEVEDRA, RAXO, date)
-    const rpPromise = idas(RAXO, PONTEVEDRA, date)
+// Main
+app.use(async (ctx: Context) => {
+  const date = getDateFromUrl(ctx.path) || new Date
 
-    const [pr, rp] = await Promise.all([prPromise, rpPromise])
-    const responseObject = { pr, rp }
+  const prPromise = idas(PONTEVEDRA, RAXO, date)
+  const rpPromise = idas(RAXO, PONTEVEDRA, date)
 
-    cache.put(pathname, responseObject)
-    send(res, 200, responseObject)
-  } catch (e) {
-    res.statusCode = 500
-    res.end('error')
-    console.log(e.message)
-  }
-}
+  const [pr, rp] = await Promise.all([prPromise, rpPromise])
+  const responseObject = { pr, rp }
+
+  cache.put(ctx.path, responseObject)
+
+  ctx.body = responseObject
+})
+
+export default app.callback()

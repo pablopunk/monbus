@@ -3,11 +3,11 @@
   "name": "monbus",
   "alias": "raxo",
   "builds": [
-    { "src": "api/index.js", "use": "now-micro" },
+    { "src": "api/index.ts", "use": "@now/node" },
     { "src": "www/package.json", "use": "@now/next" }
   ],
   "routes": [
-    { "src": "/api(.*)", "dest": "/api/index.js" },
+    { "src": "/api(.*)", "dest": "/api/index.ts" },
     { "src": "/(.*)",
       "dest": "/www/$1",
       "headers": { "x-request-path": "$1" } }
