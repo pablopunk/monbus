@@ -7,7 +7,7 @@ import Fade from 'react-fade-in';
 let API = 'https://raxo.now.sh/api';
 
 if (process.env.NODE_ENV !== 'production') {
-  API = 'http://localhost:3000';
+  API = 'http://localhost:3001';
 }
 
 // return article tag for first render, Fade otherwise
@@ -57,7 +57,10 @@ export default class extends React.Component {
 
     if (this.fetchCache.hasOwnProperty(urlString)) {
       // fetched in cache
-      this.setState({horarios: this.fetchCache[urlString], loading: false});
+      // simulate a fetch by quickly showing the loading icon
+      setTimeout(() => {
+        this.setState({horarios: this.fetchCache[urlString], loading: false});
+      }, 200)
     } else {
       fetch(urlString).then(res => {
         res.json().then(horarios => {

@@ -140,7 +140,8 @@ app.use(async (ctx: Context) => {
 })
 
 if (process.env.NODE_ENV === 'development') {
-  app.listen(3000)
+  app.listen(3001)
+  console.log('Listening on', 3001)
 }
 
 export default app.callback()
