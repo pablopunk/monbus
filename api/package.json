@@ -2,7 +2,7 @@
   "name": "monbus-api",
   "main": "index.ts",
   "scripts": {
-    "dev": "nodemon -e ts --exec \"ts-node index.ts\""
+    "dev": "NODE_ENV=development nodemon -e ts --exec \"ts-node index.ts\""
   },
   "license": "ISC",
   "dependencies": {
@@ -10,6 +10,7 @@
     "cheerio": "^1.0.0-rc.3",
     "got": "^9.6.0",
     "koa": "^2.7.0",
+    "koa-cache-lite": "^3.8.8",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v15.10.0"
   },
   "devDependencies": {

@@ -1,12 +1,22 @@
 import * as Koa from 'koa'
+import * as cache from 'koa-cache-lite'
 import { Context } from 'koa'
-import * as got from 'got';
-import * as cheerio from 'cheerio';
-import * as Cache from 'cache'
+import * as got from 'got'
+import * as cheerio from 'cheerio'
 
 const app = new Koa()
 
-const cache = new Cache(30 * 60 * 1000) // 30 minutes cache
+const cacheLife = 1 * 60 * 1000 // 1 minute
+
+// koa cache
+cache.configure({
+  '/api': cacheLife,
+  '/api/': cacheLife,
+  '/api/:y/:m/:d': cacheLife,
+  '/api/:y/:m/:d/': cacheLife,
+}, {
+  debug: process.env.NODE_ENV === 'development'
+})
 
 const buildUrl = (from: number, to: number, date: Date) => {
   const baseUrl = 'http://www.monbus.es/';
@@ -113,16 +123,8 @@ app.use(async (ctx: Context, next: Function) => {
   }
 })
 
-
-// From cache
-app.use(async (ctx: Context, next: Function) => {
-  const fromCache = cache.get(ctx.path)
-  if (fromCache === null) {
-    return await next()
-  }
-
-  ctx.body = fromCache
-})
+// Koa cache
+app.use(cache.middleware())
 
 // Main
 app.use(async (ctx: Context) => {
@@ -134,9 +136,11 @@ app.use(async (ctx: Context) => {
   const [pr, rp] = await Promise.all([prPromise, rpPromise])
   const responseObject = { pr, rp }
 
-  cache.put(ctx.path, responseObject)
-
   ctx.body = responseObject
 })
+
+if (process.env.NODE_ENV === 'development') {
+  app.listen(3000)
+}
 
 export default app.callback()
