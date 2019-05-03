@@ -1,5 +1,5 @@
 import * as Koa from 'koa'
-import * as cache from 'koa-cache-lite'
+import * as cache from 'koa-incache'
 import { Context } from 'koa'
 import * as got from 'got'
 import * as cheerio from 'cheerio'
@@ -7,16 +7,6 @@ import * as cheerio from 'cheerio'
 const app = new Koa()
 
 const cacheLife = 1 * 60 * 1000 // 1 minute
-
-// koa cache
-cache.configure({
-  '/api': cacheLife,
-  '/api/': cacheLife,
-  '/api/:y/:m/:d': cacheLife,
-  '/api/:y/:m/:d/': cacheLife,
-}, {
-  debug: process.env.NODE_ENV === 'development'
-})
 
 const buildUrl = (from: number, to: number, date: Date) => {
   const baseUrl = 'http://www.monbus.es/';
@@ -108,6 +98,11 @@ const getDateFromUrl = (url: string) => {
 const PONTEVEDRA = 10530
 const RAXO = 10556
 
+// Cache
+app.use(cache({
+  maxAge: cacheLife
+}))
+
 // Headers
 app.use(async (ctx: Context, next: Function) => {
   ctx.set('Access-Control-Allow-Origin', '*')
@@ -123,9 +118,6 @@ app.use(async (ctx: Context, next: Function) => {
   }
 })
 
-// Koa cache
-app.use(cache.middleware())
-
 // Main
 app.use(async (ctx: Context) => {
   const date = getDateFromUrl(ctx.path) || new Date
@@ -136,12 +128,14 @@ app.use(async (ctx: Context) => {
   const [pr, rp] = await Promise.all([prPromise, rpPromise])
   const responseObject = { pr, rp }
 
+  ctx.cached(responseObject)
   ctx.body = responseObject
 })
 
 if (process.env.NODE_ENV === 'development') {
-  app.listen(3001)
-  console.log('Listening on', 3001)
+  const port = 3001
+  app.listen(port)
+  console.log('Listening on', port)
 }
 
 export default app.callback()

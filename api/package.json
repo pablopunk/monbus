@@ -10,7 +10,6 @@
     "cheerio": "^1.0.0-rc.3",
     "got": "^9.6.0",
     "koa": "^2.7.0",
-    "koa-cache-lite": "^3.8.8",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v15.10.0"
   },
   "devDependencies": {
@@ -18,6 +17,7 @@
     "@types/got": "^9.4.4",
     "@types/koa": "^2.0.48",
     "@types/node": "^11.13.7",
+    "koa-incache": "^0.5.0",
     "nodemon": "^1.18.11",
     "ts-node": "^8.1.0",
     "typescript": "^3.4.5"
