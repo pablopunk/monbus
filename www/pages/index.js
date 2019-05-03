@@ -10,16 +10,37 @@ if (process.env.NODE_ENV !== 'production') {
   API = 'http://localhost:3001';
 }
 
+const RAXO = 10556
+const PONTEVEDRA = 10530
+
 // return article tag for first render, Fade otherwise
 const getHorariosRenderer = firstRender =>
   firstRender ? ({children}) => <article>{children}</article> : Fade;
 
+const dateToString = (date) => `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()}`
+
+const buildFetchUrl = (from, to, date) => `${API}/${from}/${to}/${dateToString(date)}`
+
+const isToday = (date) => {
+  const now = new Date()
+  return date.getDate() == now.getDate() &&
+    date.getMonth() == now.getMonth() &&
+    date.getFullYear() == now.getFullYear()
+}
+
+const makeTomorrowDate = () => {
+  const now = new Date
+  now.setDate(now.getDate() + 1)
+  return now
+}
+
 export default class extends React.Component {
   static async getInitialProps() {
-    const res = await fetch(API);
-    const json = await res.json();
+    const now = new Date
+    const res = await fetch(buildFetchUrl(RAXO, PONTEVEDRA, now))
+    const json = await res.json()
 
-    return {horarios: json};
+    return {horarios: json, from: RAXO, to: PONTEVEDRA, date: now};
   }
 
   constructor(props) {
@@ -28,47 +49,45 @@ export default class extends React.Component {
     autoBind(this);
 
     this.firstRender = true;
-    this.fetchCache = {[API]: props.horarios}; // init cache
-
+    this.fetchCache = {[buildFetchUrl(props.from, props.to, new Date(props.date))]: props.horarios}; // init cache
     this.state = {
-      place: 'rp',
-      date: 'today',
+      from: props.from,
+      to: props.to,
+      date: new Date(props.date),
       horarios: props.horarios,
       loading: false,
     };
   }
 
-  placeNavClicked(place) {
-    this.setState({place});
+  async fetchTrip(from, to, date) {
+    const url = buildFetchUrl(from, to, date)
+    if (this.fetchCache.hasOwnProperty(url)) {
+      return this.fetchCache[url]
+    }
+
+    const res = await fetch(url, { headers: {'Access-Control-Allow-Origin': '*'} });
+    const json = await res.json();
+
+    this.fetchCache[url] = json
+
+    return json
+  }
+
+  placeNavClicked(from, to) {
+    this.setState({ loading: true })
+    this.fetchTrip(from, to, this.state.date)
+      .then(results => {
+         this.setState({ from, to, horarios: results, loading: false })
+      })
   }
 
   dateNavClicked(date) {
     this.setState({loading: true, date});
 
-    let urlString;
-
-    if (date === 'tomorrow') {
-      const now = new Date();
-      urlString = `${API}/${now.getFullYear()}/${now.getMonth() +
-        1}/${now.getDate() + 1}`;
-    } else {
-      urlString = API;
-    }
-
-    if (this.fetchCache.hasOwnProperty(urlString)) {
-      // fetched in cache
-      // simulate a fetch by quickly showing the loading icon
-      setTimeout(() => {
-        this.setState({horarios: this.fetchCache[urlString], loading: false});
-      }, 200)
-    } else {
-      fetch(urlString).then(res => {
-        res.json().then(horarios => {
-          this.fetchCache[urlString] = horarios
-          this.setState({horarios, loading: false});
-        });
-      });
-    }
+    this.fetchTrip(this.state.from, this.state.to, date)
+      .then(results => {
+         this.setState({ date, horarios: results, loading: false })
+      })
   }
 
   componentDidMount() {
@@ -82,25 +101,25 @@ export default class extends React.Component {
       <div>
         <nav>
           <div
-            onClick={() => this.placeNavClicked('rp')}
-            className={classNames({selected: this.state.place === 'rp'})}>
+            onClick={() => this.placeNavClicked(RAXO, PONTEVEDRA)}
+            className={classNames({selected: this.state.from === RAXO})}>
             Raxó - Pontevedra
           </div>
           <div
-            onClick={() => this.placeNavClicked('pr')}
-            className={classNames({selected: this.state.place === 'pr'})}>
+            onClick={() => this.placeNavClicked(PONTEVEDRA, RAXO)}
+            className={classNames({selected: this.state.from === PONTEVEDRA})}>
             Pontevedra - Raxó
           </div>
         </nav>
         <nav>
           <div
-            onClick={() => this.dateNavClicked('today')}
-            className={classNames({selected: this.state.date === 'today'})}>
+            onClick={() => this.dateNavClicked(new Date)}
+            className={classNames({selected: isToday(this.state.date)})}>
             Hoxe
           </div>
           <div
-            onClick={() => this.dateNavClicked('tomorrow')}
-            className={classNames({selected: this.state.date === 'tomorrow'})}>
+            onClick={() => this.dateNavClicked(makeTomorrowDate())}
+            className={classNames({selected: !isToday(this.state.date)})}>
             Mañá
           </div>
         </nav>
@@ -112,7 +131,7 @@ export default class extends React.Component {
           <section>
             <i className="far fa-calendar-alt" />
             <HorariosRenderer>
-              {this.state.horarios[this.state.place].map(horario => (
+              {this.state.horarios.map(horario => (
                 <div>{horario}</div>
               ))}
             </HorariosRenderer>

@@ -1,6 +1,7 @@
 import * as Koa from 'koa'
 import * as cache from 'koa-incache'
 import { Context } from 'koa'
+import * as cors from '@koa/cors'
 import * as got from 'got'
 import * as cheerio from 'cheerio'
 
@@ -38,14 +39,14 @@ const headers = {
   'x-requested-with': 'XMLHttpRequest',
 };
 
-async function idas(from: number, to: number, date: Date) {
+async function getTrip(from: number, to: number, date: Date) {
   const {body} = await got(buildUrl(from, to, date), {headers});
 
   const $ = cheerio.load(body);
 
-  let idas = [];
-  $('.departureTime').each((_i, el) => idas.push($(el).text()));
-  idas = idas.reduce((acc, curr) => {
+  let trip = [];
+  $('.departureTime').each((_i, el) => trip.push($(el).text()));
+  trip = trip.reduce((acc, curr) => {
     if (acc.includes(curr)) {
       const index = acc.indexOf(curr);
       acc[index] = acc[index] + ' (x2)';
@@ -55,7 +56,7 @@ async function idas(from: number, to: number, date: Date) {
     return acc;
   }, []);
 
-  return idas;
+  return trip;
 }
 
 const validateDate = (dateArr: Array<number>) => {
@@ -70,44 +71,30 @@ const validateDate = (dateArr: Array<number>) => {
   )
 }
 
-const getDateFromUrl = (url: string) => {
-  if (url === '/' || typeof url !== 'string' || !url) {
-    return null
+const getDataFromUrl = (url: string) : { from: number, to: number, date: Date } => {
+  const splits = url.split('/').filter(_ => !!_)
+
+  if (splits.length === 2) {
+    return { from: parseInt(splits[0]), to: parseInt(splits[1]), date: new Date }
   }
 
-  let urlSplits = url
-    .split('/')
-    .filter(_ => !!_)
-  urlSplits = urlSplits.slice(urlSplits.length-3, urlSplits.length) // take only last 3
-
-  if (!validateDate(urlSplits.map(_ => parseInt(_)))) {
-    return null
+  if (splits.length === 5) {
+    const dateArray = splits.splice(2, 3).map(_ => parseInt(_))
+    if (!validateDate(dateArray)) {
+      throw new Error('Wrong url format')
+    }
+    const date = new Date(dateArray[0], dateArray[1] - 1, dateArray[2])
+    return { from: parseInt(splits[0]), to: parseInt(splits[1]), date }
   }
 
-  try {
-    const date = new Date(parseInt(urlSplits[0]), parseInt(urlSplits[1]) - 1, parseInt(urlSplits[2]))
-
-    return date
-  } catch (err) {
-
-    console.log('Invalid date', url)
-    return null
-  }
+  throw new Error('Wrong url format')
 }
 
-const PONTEVEDRA = 10530
-const RAXO = 10556
-
 // Cache
-app.use(cache({
-  maxAge: cacheLife
-}))
+app.use(cache({maxAge: cacheLife}))
 
-// Headers
-app.use(async (ctx: Context, next: Function) => {
-  ctx.set('Access-Control-Allow-Origin', '*')
-  await next()
-})
+// CORS
+app.use(cors({ origin() { return '*' } }))
 
 // 404
 app.use(async (ctx: Context, next: Function) => {
@@ -120,16 +107,16 @@ app.use(async (ctx: Context, next: Function) => {
 
 // Main
 app.use(async (ctx: Context) => {
-  const date = getDateFromUrl(ctx.path) || new Date
+  try {
+    var { from, to, date } = getDataFromUrl(ctx.path)
+  } catch (err) {
+    ctx.throw(404)
+  }
 
-  const prPromise = idas(PONTEVEDRA, RAXO, date)
-  const rpPromise = idas(RAXO, PONTEVEDRA, date)
+  const result = await getTrip(from, to, date)
 
-  const [pr, rp] = await Promise.all([prPromise, rpPromise])
-  const responseObject = { pr, rp }
-
-  ctx.cached(responseObject)
-  ctx.body = responseObject
+  ctx.cached(result)
+  ctx.body = result
 })
 
 if (process.env.NODE_ENV === 'development') {
