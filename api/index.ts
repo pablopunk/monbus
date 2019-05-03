@@ -108,7 +108,7 @@ app.use(async (ctx: Context, next: Function) => {
 // Main
 app.use(async (ctx: Context) => {
   try {
-    var { from, to, date } = getDataFromUrl(ctx.path)
+    var { from, to, date } = getDataFromUrl(ctx.path.replace('/api', ''))
   } catch (err) {
     ctx.throw(404)
   }
