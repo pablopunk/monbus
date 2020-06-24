@@ -1,7 +1,5 @@
 {
   "version": 2,
-  "name": "monbus",
-  "alias": "raxo",
   "builds": [
     { "src": "api/index.ts", "use": "@now/node" },
     { "src": "www/package.json", "use": "@now/next" }
