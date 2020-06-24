@@ -16,7 +16,7 @@
     "auto-bind": "^1.2.1",
     "class-names": "^1.0.0",
     "isomorphic-fetch": "^2.2.1",
-    "next": "^7.0.2",
+    "next": "^9.4.4",
     "react": "^16.6.0",
     "react-dom": "^16.6.0",
     "react-fade-in": "^0.1.6"
