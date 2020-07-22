@@ -108,7 +108,6 @@ app.use(async (ctx: Context, next: Function) => {
 app.use(async (ctx: Context) => {
   try {
     var { from, to, date } = getDataFromUrl(ctx.path.replace('/api', ''))
-    console.log(from, to, date)
   } catch (err) {
     ctx.throw(404)
   }

@@ -132,7 +132,7 @@ export default class extends React.Component {
             <i className="far fa-calendar-alt" />
             <HorariosRenderer>
               {this.state.horarios.map(horario => (
-                <div>{horario}</div>
+                <div key={horario}>{horario}</div>
               ))}
             </HorariosRenderer>
           </section>
