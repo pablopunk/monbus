@@ -7,7 +7,7 @@ import Fade from 'react-fade-in';
 let API = 'https://raxo.now.sh/api';
 
 if (process.env.NODE_ENV !== 'production') {
-  API = 'http://localhost:3001';
+  API = 'http://localhost:3000/api';
 }
 
 const RAXO = 10556
@@ -171,6 +171,7 @@ export default class extends React.Component {
           }
           section div {
             width: 150px;
+            text-align: center;
           }
           .loading {
             text-align: center;

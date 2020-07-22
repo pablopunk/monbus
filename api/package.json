@@ -11,7 +11,7 @@
     "cheerio": "^1.0.0-rc.3",
     "got": "^9.6.0",
     "koa": "^2.7.0",
-    "koa-incache": "^0.5.0",
+    "koa-incache": "^0.5.0"
   },
   "devDependencies": {
     "@types/cheerio": "^0.22.11",

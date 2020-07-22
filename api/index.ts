@@ -1,9 +1,8 @@
-import * as Koa from 'koa'
-import * as cache from 'koa-incache'
-import { Context } from 'koa'
-import * as cors from '@koa/cors'
-import * as got from 'got'
-import * as cheerio from 'cheerio'
+import Koa, {Context} from 'koa'
+import cache from 'koa-incache'
+import cors from '@koa/cors'
+import got from 'got'
+import cheerio from 'cheerio'
 
 const app = new Koa()
 
@@ -109,6 +108,7 @@ app.use(async (ctx: Context, next: Function) => {
 app.use(async (ctx: Context) => {
   try {
     var { from, to, date } = getDataFromUrl(ctx.path.replace('/api', ''))
+    console.log(from, to, date)
   } catch (err) {
     ctx.throw(404)
   }
