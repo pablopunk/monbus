@@ -4,7 +4,7 @@ import fetch from 'isomorphic-fetch';
 import classNames from 'class-names';
 import Fade from 'react-fade-in';
 
-let API = 'https://raxo.now.sh/api';
+let API = 'https://raxo.pablo.pink/api';
 
 if (process.env.NODE_ENV !== 'production') {
   API = 'http://localhost:3000/api';
